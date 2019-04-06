@@ -37,11 +37,24 @@ void clock_setup(const enum clock_mode clock)
 void gpio_setup(void)
 {
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
-    gpio_mode_setup(GPIOA, GPIO_MODE_OUT, GPIO_PUPD_PULLDOWN, GPIO1);
+    gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLDOWN, GPIO1);
     gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
     gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_50MHz, GPIO1);
 }
-
+void gpio_ledsetup(void)
+{
+    gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLUP, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+    gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_50MHz, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+    gpio_clear(GPIOD, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+}
+void ledON(void)
+{
+    gpio_set(GPIOD, GPIO12);
+}
+void ledOFF(void)
+{
+    gpio_reset(GPIOD, GPIO12);
+}
 void usart_setup(int baud)
 {
     usart_set_baudrate(USART2, baud);
