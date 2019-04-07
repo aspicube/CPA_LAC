@@ -1,9 +1,7 @@
 /* Deterministic randombytes by Daniel J. Bernstein */
 /* taken from SUPERCOP (https://bench.cr.yp.to)     */
-/* main function modified for side channel attack   */
 
 #include "api.h"
-#include "stm32wrapper.h"
 #include "randombytes.h"
 
 #include <stdio.h>
@@ -21,7 +19,8 @@ static void printbytes(const unsigned char *x, unsigned long long xlen)
   for(i=0;i<xlen;i++)
     sprintf(outs+2*i, "%02x", x[i]);
   outs[2*xlen] = 0;
-  send_USART_str(outs);
+  printf("%s", outs);
+  printf("\n");
 }
 
 static uint32 seed[32] = { 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5 } ;
@@ -70,7 +69,6 @@ void randombytes(unsigned char *x,unsigned long long xlen)
 }
 
 
-
 int main(void)
 {
   unsigned char key_a[CRYPTO_BYTES], key_b[CRYPTO_BYTES];
@@ -78,12 +76,6 @@ int main(void)
   unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
   unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
   int i,j;
-
-  clock_setup(CLOCK_FAST);
-  gpio_setup();
-  usart_setup(115200);
-
-  send_USART_str("==========================");
 
   for(i=0;i<NTESTS;i++)
   {
@@ -108,14 +100,10 @@ int main(void)
     {
       if(key_a[j] != key_b[j])
       {
-        send_USART_str("ERROR");
-        send_USART_str("#");
+        printf("ERROR\n");
         return -1;
       }
     }
   }
-
-  send_USART_str("#");
-  while(1);
   return 0;
 }
