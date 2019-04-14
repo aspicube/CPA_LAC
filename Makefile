@@ -48,35 +48,27 @@ SIGNS_HOST=$(wildcard LAC/crypto_sign/*/ref)
 KEMS_M4=$(call filter_m4ignore, $(KEMS))
 SIGNS_M4=$(call filter_m4ignore, $(SIGNS))
 
-KEMTESTS=$(patsubst %,bin/%,$(patsubst %,%_test.bin,$(subst /,_,$(KEMS_M4))))
-SIGNTESTS=$(patsubst %,bin/%,$(patsubst %,%_test.bin,$(subst /,_,$(SIGNS_M4))))
 
-KEMTESTVECTORS=$(patsubst %,bin/%,$(patsubst %,%_testvectors.bin,$(subst /,_,$(KEMS_M4))))
-SIGNTESTVECTORS=$(patsubst %,bin/%,$(patsubst %,%_testvectors.bin,$(subst /,_,$(SIGNS_M4))))
+KEMSCPA=$(patsubst %,bin/%,$(patsubst %,%_cpa.bin,$(subst /,_,$(KEMS_M4))))
+SIGNSCPA=$(patsubst %,bin/%,$(patsubst %,%_cpa.bin,$(subst /,_,$(SIGNS_M4))))
 
-KEMTESTVECTORS_HOST=$(patsubst %,bin-host/%,$(patsubst %,%_testvectors,$(subst /,_,$(KEMS_HOST))))
-SIGNTESTVECTORS_HOST=$(patsubst %,bin-host/%,$(patsubst %,%_testvectors,$(subst /,_,$(SIGNS_HOST))))
 
-KEMSPEEDS=$(patsubst %,bin/%,$(patsubst %,%_speed.bin,$(subst /,_,$(KEMS_M4))))
-SIGNSPEEDS=$(patsubst %,bin/%,$(patsubst %,%_speed.bin,$(subst /,_,$(SIGNS_M4))))
-
-KEMSTACK=$(patsubst %,bin/%,$(patsubst %,%_stack.bin,$(subst /,_,$(KEMS_M4))))
-SIGNSTACK=$(patsubst %,bin/%,$(patsubst %,%_stack.bin,$(subst /,_,$(SIGNS_M4))))
+KEMSCPA_HOST=$(patsubst %,bin-host/%,$(patsubst %,%_cpa,$(subst /,_,$(KEMS_HOST))))
+SIGNSCPA_HOST=$(patsubst %,bin-host/%,$(patsubst %,%_cpa,$(subst /,_,$(SIGNS_HOST))))
 
 LIBS_M4=$(addsuffix /libpqm4.a,$(KEMS_M4)) $(addsuffix /libpqm4.a,$(SIGNS_M4))
 LIBS_HOST=$(addsuffix /libpqhost.a,$(KEMS_HOST)) $(addsuffix /libpqhost.a,$(SIGNS_HOST))
 
 OWNDIR=$(shell pwd)
-INCPATH=$(OWNDIR)/common
+INCPATH=$(OWNDIR)/SCA/common
 
 
-all: tests testvectors speeds stack
+all: cpa cpahost
 
-libs: $(LIBS_M4) $(LIBS_HOST)
-tests: libs $(KEMTESTS) $(SIGNTESTS)
-testvectors: libs $(KEMTESTVECTORS) $(SIGNTESTVECTORS) $(KEMTESTVECTORS_HOST) $(SIGNTESTVECTORS_HOST)
-speeds: libs $(KEMSPEEDS) $(SIGNSPEEDS)
-stack: libs $(KEMSTACK) $(SIGNSTACK)
+
+
+cpa: libs $(KEMSCPA) $(SIGNSCPA)
+cpahost: libs $(KEMSCPA_HOST) $(SINGSCPA_HOST)
 
 
 .PHONY: force
@@ -111,24 +103,6 @@ bin/%.bin: elf/%.elf
 	mkdir -p bin
 	$(OBJCOPY) -Obinary $^ $@
 
-
-
-elf/crypto_kem_%_test.elf: $(OBJS) $(RANDOMBYTES) $(LDSCRIPT) obj/$(patsubst %,crypto_kem_%_test.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %test.elf,%libpqm4.a,$(patsubst elf/crypto/kem%,crypto_kem/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
-
-
-elf/crypto_sign_%_test.elf: $(OBJS) $(RANDOMBYTES) $(LDSCRIPT) obj/$(patsubst %,crypto_sign_%_test.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %test.elf,%libpqm4.a,$(patsubst elf/crypto/sign%,crypto_sign/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
-
-
 elf/crypto_kem_%_testvectors.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_kem_%_testvectors.o,%) $(OPENCM3FILE)
 	mkdir -p elf
 	$(LD) -o $@ \
@@ -144,46 +118,7 @@ elf/crypto_sign_%_testvectors.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_s
 	$(OBJS) $(LDFLAGS) -l$(OPENCM3NAME) -lm
 
 
-elf/crypto_kem_%_speed.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_kem_%_speed.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %speed.elf,%libpqm4.a,$(patsubst elf/crypto/kem%,crypto_kem/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
 
-elf/crypto_sign_%_speed.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_sign_%_speed.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %speed.elf,%libpqm4.a,$(patsubst elf/crypto/sign%,crypto_sign/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
-
-elf/crypto_kem_%_stack.elf: $(OBJS) $(LDSCRIPT) $(RANDOMBYTES) obj/$(patsubst %,crypto_kem_%_stack.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %stack.elf,%libpqm4.a,$(patsubst elf/crypto/kem%,crypto_kem/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
-
-elf/crypto_sign_%_stack.elf: $(OBJS) $(LDSCRIPT) $(RANDOMBYTES) obj/$(patsubst %,crypto_sign_%_stack.o,%) $(OPENCM3FILE)
-	mkdir -p elf
-	$(LD) -o $@ \
-	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %stack.elf,%libpqm4.a,$(patsubst elf/crypto/sign%,crypto_sign/%,$(subst _,/,$@))) \
-	$(OBJS) $(RANDOMBYTES) $(LDFLAGS) -l$(OPENCM3NAME) -lm
-
-
-obj/crypto_kem_%_test.o: crypto_kem/test.c $(patsubst %,%/api.h,$(patsubst %,crypto_kem/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %test.o,%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
-	-I./common/
-
-obj/crypto_sign_%_test.o: crypto_sign/test.c $(patsubst %,%/api.h,$(patsubst %,crypto_sign/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %test.o,%,$(patsubst obj/%,%,$(subst crypto/sign,crypto_sign,$(subst _,/,$@)))) \
-	-I./common/
 
 
 obj/crypto_kem_%_testvectors.o: crypto_kem/testvectors.c $(patsubst %,%/api.h,$(patsubst %,crypto_kem/%,$(subst _,/,$%)))
@@ -210,30 +145,6 @@ obj-host/crypto_sign_%_testvectors.o: crypto_sign/testvectors-host.c $(patsubst 
 	-I$(patsubst %testvectors.o,%,$(patsubst obj-host/%,%,$(subst crypto/sign,crypto_sign,$(subst _,/,$@)))) \
 	-I./common/
 
-
-obj/crypto_kem_%_speed.o: crypto_kem/speed.c $(patsubst %,%/api.h,$(patsubst %,crypto_kem/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %speed.o,%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
-	-I./common/
-
-obj/crypto_sign_%_speed.o: crypto_sign/speed.c $(patsubst %,%/api.h,$(patsubst %,crypto_sign/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %speed.o,%,$(patsubst obj/%,%,$(subst crypto/sign,crypto_sign,$(subst _,/,$@)))) \
-	-I./common/
-
-obj/crypto_kem_%_stack.o: crypto_kem/stack.c $(patsubst %,%/api.h,$(patsubst %,crypto_kem/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %stack.o,%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
-	-I./common/
-
-obj/crypto_sign_%_stack.o: crypto_sign/stack.c $(patsubst %,%/api.h,$(patsubst %,crypto_sign/%,$(subst _,/,$%)))
-	mkdir -p obj
-	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %stack.o,%,$(patsubst obj/%,%,$(subst crypto/sign,crypto_sign,$(subst _,/,$@)))) \
-	-I./common/
 
 
 obj/randombytes.o: common/randombytes.c

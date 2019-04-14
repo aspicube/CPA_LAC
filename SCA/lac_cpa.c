@@ -12,8 +12,13 @@
 
 #define NTESTS 2
 
-typedef uint32_t uint32;
+#define STATE_INITING 0
+#define STATE_INITED 1
+#define STATE_WAITING 2
+#define STATE_WORKING 3
 
+typedef uint32_t uint32;
+static unsigned int program_state;
 static void printbytes(const unsigned char *x, unsigned long long xlen)
 {
   char outs[2*xlen+1];
@@ -68,22 +73,30 @@ void randombytes(unsigned char *x,unsigned long long xlen)
   }
   printbytes(xbak, bak);
 }
-
-
-
+// LAC128--------------------------------------
+// CRYPTO_SECRETKEYBYTES = DIM_N+PK_LEN = 1056
+// CRYPTO_PUBLICKEYBYTES = PK_LEN = 544
+// CRYPTO_BYTES = MESSAGE_LEN = 32
+// CRYPTO_CIPHERTEXTBYTES = CIPHER_LEN = 736
+// --------------------------------------------
 int main(void)
 {
+
   unsigned char key_a[CRYPTO_BYTES], key_b[CRYPTO_BYTES];
   unsigned char pk[CRYPTO_PUBLICKEYBYTES];
   unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
   unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
   int i,j;
 
+  program_state = STATE_INITING;
+  //initialize
   clock_setup(CLOCK_FAST);
   gpio_setup();
   usart_setup(115200);
 
   send_USART_str("==========================");
+  //
+  program_state = STATE_INITED;
 
   for(i=0;i<NTESTS;i++)
   {
@@ -118,4 +131,34 @@ int main(void)
   send_USART_str("#");
   while(1);
   return 0;
+}
+// RXNE: RX not empty
+// TXE: TX empty
+void usart2_isr(void)
+{
+  static uint8_t data = 'A';
+  /* Check if we were called because of RXNE. */
+	if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0) &&
+	    ((USART_SR(USART2) & USART_SR_RXNE) != 0)) {
+
+		/* Indicate that we got data. */
+		gpio_toggle(GPIOD, GPIO12);
+
+		/* Retrieve the data from the peripheral. */
+		data = usart_recv(USART2);
+
+		/* Enable transmit interrupt so it sends back the data. */
+		usart_enable_tx_interrupt(USART2);
+	}
+
+	/* Check if we were called because of TXE. */
+	if (((USART_CR1(USART2) & USART_CR1_TXEIE) != 0) &&
+	    ((USART_SR(USART2) & USART_SR_TXE) != 0)) {
+
+		/* Put data into the transmit register. */
+		usart_send(USART2, data);
+
+		/* Disable the TXE interrupt as we don't need it anymore. */
+		usart_disable_tx_interrupt(USART2);
+	}
 }

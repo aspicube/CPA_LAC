@@ -1,4 +1,5 @@
 /bin/
+/bin-host/
 /data/
 /.vscode/
 *.o

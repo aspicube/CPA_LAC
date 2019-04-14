@@ -27,6 +27,7 @@ void clock_setup(const enum clock_mode clock)
     }
 
     rcc_periph_clock_enable(RCC_GPIOA);
+    rcc_periph_clock_enable(RCC_GPIOD);
     rcc_periph_clock_enable(RCC_USART2);
     rcc_periph_clock_enable(RCC_DMA1);
     rcc_periph_clock_enable(RCC_RNG);
@@ -57,6 +58,7 @@ void ledOFF(void)
 }
 void usart_setup(int baud)
 {
+    nvic_enable_irq(NVIC_USART2_IRQ);
     usart_set_baudrate(USART2, baud);
     usart_set_databits(USART2, 8);
     usart_set_stopbits(USART2, USART_STOPBITS_1);
@@ -64,6 +66,7 @@ void usart_setup(int baud)
     usart_set_parity(USART2, USART_PARITY_NONE);
     usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
 
+    usart_enable_rx_interrupt(USART2);
     usart_enable(USART2);
 }
 
