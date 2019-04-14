@@ -40,12 +40,12 @@ void gpio_setup(void)
     gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2 | GPIO3);
     gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLDOWN, GPIO1);
     gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
-    gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_50MHz, GPIO1);
+    gpio_set_output_options(GPIOA, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO1);
 }
 void gpio_ledsetup(void)
 {
     gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_PULLUP, GPIO12 | GPIO13 | GPIO14 | GPIO15);
-    gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_50MHz, GPIO12 | GPIO13 | GPIO14 | GPIO15);
+    gpio_set_output_options(GPIOD, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, GPIO12 | GPIO13 | GPIO14 | GPIO15);
     gpio_clear(GPIOD, GPIO12 | GPIO13 | GPIO14 | GPIO15);
 }
 void ledON(void)
@@ -54,7 +54,7 @@ void ledON(void)
 }
 void ledOFF(void)
 {
-    gpio_reset(GPIOD, GPIO12);
+    gpio_clear(GPIOD, GPIO12);
 }
 void usart_setup(int baud)
 {

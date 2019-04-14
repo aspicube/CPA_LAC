@@ -20,6 +20,10 @@ enum clock_mode {
 void clock_setup(const enum clock_mode);
 //this function has been modified for oscilloscope
 void gpio_setup(void);
+//
+void gpio_ledsetup(void);
+void ledON(void);
+void ledOFF(void);
 //------------------------------------
 void usart_setup(int baud);
 void systick_setup(void);
