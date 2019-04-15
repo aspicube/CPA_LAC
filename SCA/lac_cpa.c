@@ -10,15 +10,13 @@
 #include <stdint.h>
 #include <string.h>
 
-#define NTESTS 2
-
-#define STATE_INITING 0
-#define STATE_INITED 1
-#define STATE_WAITING 2
-#define STATE_WORKING 3
 
 typedef uint32_t uint32;
-static unsigned int program_state;
+//flag_keypair = 0:keypair not ready =1:keypair ready
+static unsigned int flag_keypair;
+
+//actually, printbytes is sending hex format bytes, while print hex is sending origin bytes.
+
 static void printbytes(const unsigned char *x, unsigned long long xlen)
 {
   char outs[2*xlen+1];
@@ -26,6 +24,12 @@ static void printbytes(const unsigned char *x, unsigned long long xlen)
   for(i=0;i<xlen;i++)
     sprintf(outs+2*i, "%02x", x[i]);
   outs[2*xlen] = 0;
+  send_USART_str(outs);
+}
+static void printhex(const unsigned char *x, unsigned long long xlen)
+{
+  char outs[xlen + 1];
+  ous[xlen] = 0;
   send_USART_str(outs);
 }
 
@@ -88,77 +92,107 @@ int main(void)
   unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
   int i,j;
 
-  program_state = STATE_INITING;
-  //initialize
+  unsigned char cmd_str[3];
+  unsigned char ret_str[3];
+  unsigned long long recv_param_length;
+  unsigned long long send_param_length;
+  flag_keypair = 0;
+  //initialize--------------------------------------
   clock_setup(CLOCK_FAST);
   gpio_setup();
   usart_setup(115200);
-
-  send_USART_str("==========================");
-  //
-  program_state = STATE_INITED;
-
-  for(i=0;i<NTESTS;i++)
+  osctrig_reset();
+  send_USART_str("STM32F407G-DISC1 initialized.\n");
+  //------------------------------------------------
+  //waiting for command
+  while(1)
   {
-    // Key-pair generation
-    crypto_kem_keypair(pk, sk_a);
-
-    printbytes(pk,CRYPTO_PUBLICKEYBYTES);
-    printbytes(sk_a,CRYPTO_SECRETKEYBYTES);
-
-    // Encapsulation
-    crypto_kem_enc(sendb, key_b, pk);
-
-    printbytes(sendb,CRYPTO_CIPHERTEXTBYTES);
-    printbytes(key_b,CRYPTO_BYTES);
-
-    // Decapsulation
-    crypto_kem_dec(key_a, sendb, sk_a);
-
-    printbytes(key_a,CRYPTO_BYTES);
-
-    for(j=0;j<CRYPTO_BYTES;j++)
+    recv_USART_bytes(cmd_str,3);
+    switch cmd_str[0]
     {
-      if(key_a[j] != key_b[j])
+      case 0xC0: //keygen
       {
-        send_USART_str("ERROR");
-        send_USART_str("#");
-        return -1;
+        crypto_kem_keypair(pk, sk_a);
+        ret_str[0] = 0x00;
+        ret_str[1] = CRYPTO_SECRETKEYBYTES / 256;
+        ret_str[2] = CRYPTO_SECRETKEYBYTES % 256;
+        printhex(ret_str,3);
+        printhex(sk_a, CRYPTO_SECRETKEYBYTES);
+        flag_keypair = 1;
+        break;
+      }
+      case 0xC3: //key set from master
+      {
+        recv_param_length = cmd_str[1] * 256 + cmd_str[2];
+        if(recv_param_length != CRYPTO_SECRETKEYBYTES)
+        {
+          ret_str[0] = 0xFF;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          printhex(ret_str,3);
+        }
+        else
+        {
+          ret_str[0] = 0x00;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          printhex(ret_str,3);
+          recv_USART_bytes(sk_a,CRYPTO_SECRETKEYBYTES);
+          pk = sk_a + CRYPTO_SECRETKEYBYTES - CRYPTO_PUBLICKEYBYTES;
+          flag_keypair = 1;
+        }
+        break;
+      }
+      case 0xCA://random enc and dec
+      {
+        if(flag_keypair == 0)
+        {
+          ret_str[0] = 0xFF;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          printhex(ret_str,3);
+        }else
+        {
+          crypto_kem_enc(sendb, key_b, pk);
+          osctrig_set();
+          crypto_kem_dec(key_a, sendb, sk_a);
+          osctrig_reset();
+          send_param_length = CRYPTO_CIPHERTEXTBYTES + CRYPTO_BYTES;
+          ret_str[0] = 0x00;
+          ret_str[1] = send_param_length / 256;
+          ret_str[2] = send_param_length % 256;
+          printhex(ret_str,3);
+          printhex(key_a,CRYPTO_BYTES);
+          printhex(sendb,CRYPTO_CIPHERTEXTBYTES);
+        }
+        break;
+      }
+      case 0xCC://dec using data from USART
+      {
+        recv_param_length = cmd_str[1] * 256 + cmd_str[2];
+        if((flag_keypair == 0) || (recv_param_length != CRYPTO_CIPHERTEXTBYTES))
+        {
+          ret_str[0] = 0xFF;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          printhex(ret_str,3);
+        }else
+        {
+          recv_USART_bytes(sendb, CRYPTO_CIPHERTEXTBYTES);
+          osctrig_set();
+          crypto_kem_dec(key_a, sendb, sk_a);
+          osctrig_reset();
+          send_param_length = CRYPTO_CIPHERTEXTBYTES + CRYPTO_BYTES;
+          ret_str[0] = 0x00;
+          ret_str[1] = send_param_length / 256;
+          ret_str[2] = send_param_length % 256;
+          printhex(ret_str,3);
+          printhex(key_a,CRYPTO_BYTES);
+          printhex(sendb,CRYPTO_CIPHERTEXTBYTES);
+        }
+        break;
       }
     }
   }
-
-  send_USART_str("#");
-  while(1);
   return 0;
-}
-// RXNE: RX not empty
-// TXE: TX empty
-void usart2_isr(void)
-{
-  static uint8_t data = 'A';
-  /* Check if we were called because of RXNE. */
-	if (((USART_CR1(USART2) & USART_CR1_RXNEIE) != 0) &&
-	    ((USART_SR(USART2) & USART_SR_RXNE) != 0)) {
-
-		/* Indicate that we got data. */
-		gpio_toggle(GPIOD, GPIO12);
-
-		/* Retrieve the data from the peripheral. */
-		data = usart_recv(USART2);
-
-		/* Enable transmit interrupt so it sends back the data. */
-		usart_enable_tx_interrupt(USART2);
-	}
-
-	/* Check if we were called because of TXE. */
-	if (((USART_CR1(USART2) & USART_CR1_TXEIE) != 0) &&
-	    ((USART_SR(USART2) & USART_SR_TXE) != 0)) {
-
-		/* Put data into the transmit register. */
-		usart_send(USART2, data);
-
-		/* Disable the TXE interrupt as we don't need it anymore. */
-		usart_disable_tx_interrupt(USART2);
-	}
 }
