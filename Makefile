@@ -1,4 +1,4 @@
-OPENCM3DIR  = ./LAC/libopencm3
+OPENCM3DIR  = ./pqm4/libopencm3
 OPENCM3NAME = opencm3_stm32f4
 OPENCM3FILE = $(OPENCM3DIR)/lib/lib$(OPENCM3NAME).a
 LDSCRIPT    = $(OPENCM3DIR)/lib/stm32/f4/stm32f405x6.ld
@@ -33,7 +33,7 @@ LDFLAGS_HOST =
 
 OBJS_HOST  = obj-host/fips202.o obj-host/keccakf1600.o
 
-KEMS=$(wildcard LAC/crypto_kem/*/*)
+KEMS=$(wildcard pqm4/crypto_kem/*/*)
 
 # filter the targets that cannot be built on the M4
 define filter_m4ignore
@@ -41,15 +41,15 @@ define filter_m4ignore
 endef
 
 # on the host, we are only interested in the reference implementations
-KEMS_HOST=$(wildcard LAC/crypto_kem/*/ref)
+KEMS_HOST=$(wildcard pqm4/crypto_kem/*/ref)
 # on the M4, anything that compiles is a valid target
 KEMS_M4=$(call filter_m4ignore, $(KEMS))
 
 
-KEMSCPA=$(patsubst %,bin/%,$(patsubst LAC_%,%_cpa.bin,$(subst /,_,$(KEMS_M4))))
+KEMSCPA=$(patsubst %,bin/%,$(patsubst pqm4_%,%_cpa.bin,$(subst /,_,$(KEMS_M4))))
 
 
-KEMSCPA_HOST=$(patsubst %,bin-host/%,$(patsubst LAC_%,%_cpa_host,$(subst /,_,$(KEMS_HOST))))
+KEMSCPA_HOST=$(patsubst %,bin-host/%,$(patsubst pqm4_%,%_cpa_host,$(subst /,_,$(KEMS_HOST))))
 
 LIBS_M4=$(addsuffix /libpqm4.a,$(KEMS_M4))
 LIBS_HOST=$(addsuffix /libpqhost.a,$(KEMS_HOST))
@@ -84,7 +84,7 @@ bin-host/crypto_kem_%:  $(OBJS_HOST) obj-host/$(patsubst %,crypto_kem_%.o,%)
 	mkdir -p bin-host
 	$(LD_HOST) -o $@ \
 	$(patsubst bin-host/%,obj-host/%.o,$@) \
-	$(patsubst %cpa/host,LAC/%libpqhost.a,$(patsubst bin-host/crypto/kem%,crypto_kem%,$(subst _,/,$@))) \
+	$(patsubst %cpa/host,pqm4/%libpqhost.a,$(patsubst bin-host/crypto/kem%,crypto_kem%,$(subst _,/,$@))) \
 	$(OBJS_HOST) $(LDFLAGS_HOST) -lm
 
 bin/%.bin: elf/%.elf
@@ -95,22 +95,22 @@ elf/crypto_kem_%_cpa.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_kem_%_cpa.
 	mkdir -p elf
 	$(LD) -o $@ \
 	$(patsubst elf/%.elf,obj/%.o,$@) \
-	$(patsubst %cpa.elf,LAC/%libpqm4.a,$(patsubst elf/crypto/kem%,crypto_kem%,$(subst _,/,$@))) \
+	$(patsubst %cpa.elf,pqm4/%libpqm4.a,$(patsubst elf/crypto/kem%,crypto_kem%,$(subst _,/,$@))) \
 	$(OBJS) $(LDFLAGS) -l$(OPENCM3NAME) -lm
 
 
 
-obj/crypto_kem_%_cpa.o: SCA/lac_cpa.c $(patsubst %,%/api.h,$(patsubst %,LAC/crypto_kem/%,$(subst _,/,$%)))
+obj/crypto_kem_%_cpa.o: SCA/lac_cpa.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
 	mkdir -p obj
 	$(CC) $(CFLAGS) -o $@ -c $< \
-	-I$(patsubst %cpa.o,LAC/%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
+	-I$(patsubst %cpa.o,pqm4/%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
 	-I./SCA/common/
 
 
-obj-host/crypto_kem_%_cpa_host.o: SCA/lac_cpa_host.c $(patsubst %,%/api.h,$(patsubst %,LAC/crypto_kem/%,$(subst _,/,$%)))
+obj-host/crypto_kem_%_cpa_host.o: SCA/lac_cpa_host.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
 	mkdir -p obj-host
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ -c $< \
-	-I$(patsubst %cpa/host.o,LAC/%,$(patsubst obj-host/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
+	-I$(patsubst %cpa/host.o,pqm4/%,$(patsubst obj-host/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
 	-I./SCA/common/
 
 
@@ -157,8 +157,8 @@ $(OPENCM3FILE):
 clean:
 	find . -name \*.o -type f -exec rm -f {} \;
 	find . -name \*.d -type f -exec rm -f {} \;
-	find LAC/crypto_kem -name \*.a -type f -exec rm -f {} \;
-	find LAC/crypto_sign -name \*.a -type f -exec rm -f {} \;
+	find pqm4/crypto_kem -name \*.a -type f -exec rm -f {} \;
+	find pqm4/crypto_sign -name \*.a -type f -exec rm -f {} \;
 	rm -rf elf/
 	rm -rf bin/
 	rm -rf bin-host/
