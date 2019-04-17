@@ -100,14 +100,14 @@ elf/crypto_kem_%_cpa.elf: $(OBJS) $(LDSCRIPT) obj/$(patsubst %,crypto_kem_%_cpa.
 
 
 
-obj/crypto_kem_%_cpa.o: SCA/lac_cpa.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
+obj/crypto_kem_%_cpa.o: SCA/kem_cpa.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
 	mkdir -p obj
 	$(CC) $(CFLAGS) -o $@ -c $< \
 	-I$(patsubst %cpa.o,pqm4/%,$(patsubst obj/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
 	-I./SCA/common/
 
 
-obj-host/crypto_kem_%_cpa_host.o: SCA/lac_cpa_host.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
+obj-host/crypto_kem_%_cpa_host.o: SCA/kem_cpa_host.c $(patsubst %,%/api.h,$(patsubst %,pqm4/crypto_kem/%,$(subst _,/,$%)))
 	mkdir -p obj-host
 	$(CC_HOST) $(CFLAGS_HOST) -o $@ -c $< \
 	-I$(patsubst %cpa/host.o,pqm4/%,$(patsubst obj-host/%,%,$(subst crypto/kem,crypto_kem,$(subst _,/,$@)))) \
