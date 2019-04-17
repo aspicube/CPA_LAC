@@ -97,16 +97,16 @@ int main(void)
   usart_setup(115200);
   osctrig_reset();
   send_USART_str("STM32F407G-DISC1 initialized.\n");
-  crypto_kem_keypair(pk, sk_a);
-  send_USART_bytes(sk_a, CRYPTO_SECRETKEYBYTES);
-  ledOFF();
+  //crypto_kem_keypair(pk, sk_a);
+  //send_USART_bytes(sk_a, CRYPTO_SECRETKEYBYTES);
+  //ledOFF();
   //------------------------------------------------
   //waiting for command
   while(1)
   {
     //ledOFF();
     recv_USART_bytes(cmd_str,3);
-    ledON();
+    //ledON();
     switch (cmd_str[0])
     {
       case 0xC0: //keygen
