@@ -1,0 +1,1 @@
+sudo st-flash write bin/crypto_kem_lac$1_cpa.bin 0x8000000

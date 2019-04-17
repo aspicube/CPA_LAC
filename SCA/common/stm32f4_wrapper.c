@@ -66,7 +66,7 @@ void usart_setup(int baud)
     usart_set_parity(USART2, USART_PARITY_NONE);
     usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
 
-    usart_enable_rx_interrupt(USART2);
+    //usart_enable_rx_interrupt(USART2);
     usart_enable(USART2);
 }
 
@@ -78,7 +78,6 @@ void systick_setup(void)
     systick_interrupt_enable();
     systick_counter_enable();
 }
-
 void dma_request_setup(void)
 {
     dma_stream_reset(DMA1, DMA_STREAM5);

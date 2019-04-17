@@ -26,12 +26,6 @@ static void printbytes(const unsigned char *x, unsigned long long xlen)
   outs[2*xlen] = 0;
   send_USART_str(outs);
 }
-static void printhex(const unsigned char *x, unsigned long long xlen)
-{
-  char outs[xlen + 1];
-  ous[xlen] = 0;
-  send_USART_str(outs);
-}
 
 static uint32 seed[32] = { 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5 } ;
 static uint32 in[12];
@@ -75,7 +69,7 @@ void randombytes(unsigned char *x,unsigned long long xlen)
     ++x;
     --xlen;
   }
-  printbytes(xbak, bak);
+  //printbytes(xbak, bak);
 }
 // LAC128--------------------------------------
 // CRYPTO_SECRETKEYBYTES = DIM_N+PK_LEN = 1056
@@ -90,7 +84,6 @@ int main(void)
   unsigned char pk[CRYPTO_PUBLICKEYBYTES];
   unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
   unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
-  int i,j;
 
   unsigned char cmd_str[3];
   unsigned char ret_str[3];
@@ -100,15 +93,21 @@ int main(void)
   //initialize--------------------------------------
   clock_setup(CLOCK_FAST);
   gpio_setup();
+  gpio_ledsetup();
   usart_setup(115200);
   osctrig_reset();
   send_USART_str("STM32F407G-DISC1 initialized.\n");
+  crypto_kem_keypair(pk, sk_a);
+  send_USART_bytes(sk_a, CRYPTO_SECRETKEYBYTES);
+  ledOFF();
   //------------------------------------------------
   //waiting for command
   while(1)
   {
+    //ledOFF();
     recv_USART_bytes(cmd_str,3);
-    switch cmd_str[0]
+    ledON();
+    switch (cmd_str[0])
     {
       case 0xC0: //keygen
       {
@@ -116,8 +115,8 @@ int main(void)
         ret_str[0] = 0x00;
         ret_str[1] = CRYPTO_SECRETKEYBYTES / 256;
         ret_str[2] = CRYPTO_SECRETKEYBYTES % 256;
-        printhex(ret_str,3);
-        printhex(sk_a, CRYPTO_SECRETKEYBYTES);
+        send_USART_bytes(ret_str,3);
+        send_USART_bytes(sk_a, CRYPTO_SECRETKEYBYTES);
         flag_keypair = 1;
         break;
       }
@@ -129,16 +128,17 @@ int main(void)
           ret_str[0] = 0xFF;
           ret_str[1] = 0x00;
           ret_str[2] = 0x00;
-          printhex(ret_str,3);
+          send_USART_bytes(ret_str,3);
         }
         else
         {
           ret_str[0] = 0x00;
           ret_str[1] = 0x00;
           ret_str[2] = 0x00;
-          printhex(ret_str,3);
+          send_USART_bytes(ret_str,3);
           recv_USART_bytes(sk_a,CRYPTO_SECRETKEYBYTES);
-          pk = sk_a + CRYPTO_SECRETKEYBYTES - CRYPTO_PUBLICKEYBYTES;
+          //pk = sk_a + CRYPTO_SECRETKEYBYTES - CRYPTO_PUBLICKEYBYTES;
+          memcpy(pk, sk_a + CRYPTO_SECRETKEYBYTES - CRYPTO_PUBLICKEYBYTES, CRYPTO_PUBLICKEYBYTES);
           flag_keypair = 1;
         }
         break;
@@ -150,7 +150,7 @@ int main(void)
           ret_str[0] = 0xFF;
           ret_str[1] = 0x00;
           ret_str[2] = 0x00;
-          printhex(ret_str,3);
+          send_USART_bytes(ret_str,3);
         }else
         {
           crypto_kem_enc(sendb, key_b, pk);
@@ -161,9 +161,9 @@ int main(void)
           ret_str[0] = 0x00;
           ret_str[1] = send_param_length / 256;
           ret_str[2] = send_param_length % 256;
-          printhex(ret_str,3);
-          printhex(key_a,CRYPTO_BYTES);
-          printhex(sendb,CRYPTO_CIPHERTEXTBYTES);
+          send_USART_bytes(ret_str,3);
+          send_USART_bytes(key_a,CRYPTO_BYTES);
+          send_USART_bytes(sendb,CRYPTO_CIPHERTEXTBYTES);
         }
         break;
       }
@@ -175,7 +175,7 @@ int main(void)
           ret_str[0] = 0xFF;
           ret_str[1] = 0x00;
           ret_str[2] = 0x00;
-          printhex(ret_str,3);
+          send_USART_bytes(ret_str,3);
         }else
         {
           recv_USART_bytes(sendb, CRYPTO_CIPHERTEXTBYTES);
@@ -186,9 +186,9 @@ int main(void)
           ret_str[0] = 0x00;
           ret_str[1] = send_param_length / 256;
           ret_str[2] = send_param_length % 256;
-          printhex(ret_str,3);
-          printhex(key_a,CRYPTO_BYTES);
-          printhex(sendb,CRYPTO_CIPHERTEXTBYTES);
+          send_USART_bytes(ret_str,3);
+          send_USART_bytes(key_a,CRYPTO_BYTES);
+          send_USART_bytes(sendb,CRYPTO_CIPHERTEXTBYTES);
         }
         break;
       }
