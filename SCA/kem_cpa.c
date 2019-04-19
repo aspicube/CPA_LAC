@@ -89,6 +89,7 @@ int main(void)
   unsigned char ret_str[3];
   unsigned long long recv_param_length;
   unsigned long long send_param_length;
+
   flag_keypair = 0;
   //initialize--------------------------------------
   clock_setup(CLOCK_FAST);
@@ -113,8 +114,8 @@ int main(void)
       {
         crypto_kem_keypair(pk, sk_a);
         ret_str[0] = 0x00;
-        ret_str[1] = CRYPTO_SECRETKEYBYTES / 256;
-        ret_str[2] = CRYPTO_SECRETKEYBYTES % 256;
+        ret_str[1] = (CRYPTO_SECRETKEYBYTES) / 256;
+        ret_str[2] = (CRYPTO_SECRETKEYBYTES) % 256;
         send_USART_bytes(ret_str,3);
         send_USART_bytes(sk_a, CRYPTO_SECRETKEYBYTES);
         flag_keypair = 1;
@@ -123,14 +124,14 @@ int main(void)
       case 0xC3: //key set from master
       {
         recv_param_length = cmd_str[1] * 256 + cmd_str[2];
-        if(recv_param_length != CRYPTO_SECRETKEYBYTES)
+        send_param_length = CRYPTO_SECRETKEYBYTES;
+        if(recv_param_length != send_param_length)
         {
           ret_str[0] = 0xFF;
-          ret_str[1] = 0x00;
-          ret_str[2] = 0x00;
+          ret_str[1] = recv_param_length / 256;
+          ret_str[2] = recv_param_length % 256;
           send_USART_bytes(ret_str,3);
-        }
-        else
+        }else
         {
           ret_str[0] = 0x00;
           ret_str[1] = 0x00;
