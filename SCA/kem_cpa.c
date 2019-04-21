@@ -89,7 +89,7 @@ int main(void)
   unsigned char ret_str[3];
   unsigned long long recv_param_length;
   unsigned long long send_param_length;
-
+  int i;
   flag_keypair = 0;
   //initialize--------------------------------------
   clock_setup(CLOCK_FAST);
@@ -179,7 +179,44 @@ int main(void)
           send_USART_bytes(ret_str,3);
         }else
         {
+          ret_str[0] = 0x00;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          send_USART_bytes(ret_str,3);
           recv_USART_bytes(sendb, CRYPTO_CIPHERTEXTBYTES);
+          osctrig_set();
+          crypto_kem_dec(key_a, sendb, sk_a);
+          osctrig_reset();
+          send_param_length = CRYPTO_CIPHERTEXTBYTES + CRYPTO_BYTES;
+          ret_str[0] = 0x00;
+          ret_str[1] = send_param_length / 256;
+          ret_str[2] = send_param_length % 256;
+          send_USART_bytes(ret_str,3);
+          send_USART_bytes(key_a,CRYPTO_BYTES);
+          send_USART_bytes(sendb,CRYPTO_CIPHERTEXTBYTES);
+        }
+        break;
+      }
+      case 0xCF://single-byte test
+      {
+        recv_param_length = cmd_str[1] * 256 + cmd_str[2];
+        if((flag_keypair == 0) || (recv_param_length != 1))
+        {
+          ret_str[0] = 0xFF;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          send_USART_bytes(ret_str,3);
+        }else
+        {
+          ret_str[0] = 0x00;
+          ret_str[1] = 0x00;
+          ret_str[2] = 0x00;
+          send_USART_bytes(ret_str,3);
+          for(i = 0; i < (CRYPTO_CIPHERTEXTBYTES); i++)
+          {
+            sendb[i] = 0;
+          }
+          recv_USART_bytes(sendb + (DIM_N - 1), 1);
           osctrig_set();
           crypto_kem_dec(key_a, sendb, sk_a);
           osctrig_reset();
